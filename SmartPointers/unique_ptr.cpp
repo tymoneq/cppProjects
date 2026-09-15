@@ -1,5 +1,6 @@
 
 
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 namespace managing_memory_book {
@@ -54,6 +55,23 @@ public:
     unique_ptr{std::move(other)}.swap(*this);
     return *this;
   }
+
+  bool empty() const noexcept { return !p; }
+  operator bool() const noexcept { return !empty(); }
+  bool operator==(const unique_ptr &other) const noexcept {
+    return p == other.p;
+  }
+  bool operator!=(const unique_ptr &other) const noexcept {
+    return !(*this == other);
+  }
+
+  T *get() noexcept { return p; }
+  const T *get() const noexcept { return p; }
+
+  T &operator*() noexcept { return *p; }
+  const T &operator*() const noexcept { return *p; }
+  T *operator->() noexcept { return p; }
+  const T *operator->() const noexcept { return p; }
 };
 
 // specialization for arrays
@@ -73,7 +91,7 @@ public:
   unique_ptr(T *p, void (*pf)(T *)) : deleter_type{pf}, p{p} {}
   ~unique_ptr() { (*static_cast<deleter_type *>(this))(p); }
 
-   unique_ptr(const unique_ptr &) = delete;
+  unique_ptr(const unique_ptr &) = delete;
   unique_ptr &operator=(const unique_ptr &) = delete;
 
   void swap(unique_ptr &other) noexcept {
@@ -87,6 +105,21 @@ public:
     unique_ptr{std::move(other)}.swap(*this);
     return *this;
   }
+
+  bool empty() const noexcept { return !p; }
+  operator bool() const noexcept { return !empty(); }
+  bool operator==(const unique_ptr &other) const noexcept {
+    return p == other.p;
+  }
+  bool operator!=(const unique_ptr &other) const noexcept {
+    return !(*this == other);
+  }
+
+  T *get() noexcept { return p; }
+  const T *get() const noexcept { return p; }
+
+  T &operator[](std::size_t n) noexcept { return p[n]; }
+  const T &operator[](std::size_t n) const noexcept { return p[n]; }
 };
 
 } // namespace managing_memory_book
