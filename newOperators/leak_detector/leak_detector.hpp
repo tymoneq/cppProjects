@@ -20,5 +20,5 @@ public:
 
 void *operator new(std::size_t);
 void *operator new[](std::size_t);
-void operator delete(void *) noexcept;
-void operator delete[](void *) noexcept;
+void operator delete(void *, std::size_t n) noexcept;
+void operator delete[](void *, std::size_t n) noexcept;

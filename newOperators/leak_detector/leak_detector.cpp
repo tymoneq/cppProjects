@@ -4,38 +4,34 @@
 #include <new>
 
 void *operator new(std::size_t n) {
-  void *p = std::malloc(n + sizeof(std::max_align_t));
+  void *p = std::malloc(n);
 
   if (!p)
     throw std::bad_alloc{};
 
-  new (p) std::size_t{n};
   Accountant::get().take(n);
-  return static_cast<std::max_align_t *>(p) + 1;
+  return p;
 }
 
 void *operator new[](std::size_t n) {
-  void *p = std::malloc(n + sizeof(std::max_align_t));
+  void *p = std::malloc(n);
 
   if (!p)
     throw std::bad_alloc{};
 
-  new (p) std::size_t{n};
   Accountant::get().take(n);
-  return static_cast<std::max_align_t *>(p) + 1;
+  return p;
 }
 
-void operator delete(void *p) noexcept {
+void operator delete(void *p, std::size_t n) noexcept {
   if (!p)
     return;
-  p = static_cast<std::max_align_t *>(p) - 1;
-  Accountant::get().give_back(*static_cast<std::size_t *>(p));
+  Accountant::get().give_back(n);
   std::free(p);
 }
-void operator delete[](void *p) noexcept {
+void operator delete[](void *p,std::size_t n) noexcept {
   if (!p)
     return;
-  p = static_cast<std::max_align_t *>(p) - 1;
-  Accountant::get().give_back(*static_cast<std::size_t *>(p));
+  Accountant::get().give_back(n);
   std::free(p);
 }
