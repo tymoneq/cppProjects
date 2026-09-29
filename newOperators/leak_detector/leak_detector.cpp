@@ -4,39 +4,38 @@
 #include <new>
 
 void *operator new(std::size_t n) {
-  void *p = std::malloc(n + sizeof(n)); // do poprawienia
+  void *p = std::malloc(n + sizeof(std::max_align_t));
 
   if (!p)
     throw std::bad_alloc{};
 
-  auto q = static_cast<std::size_t *>(p);
-  *q = n; // do poprawienia
+  new (p) std::size_t{n};
   Accountant::get().take(n);
-  return q + 1; // do poprawienia
+  return static_cast<std::max_align_t *>(p) + 1;
 }
 
 void *operator new[](std::size_t n) {
-  void *p = std::malloc(n + sizeof(n));
+  void *p = std::malloc(n + sizeof(std::max_align_t));
+
   if (!p)
     throw std::bad_alloc{};
 
-  auto q = static_cast<std::size_t *>(p);
-  *q = n; // do poprawienia
+  new (p) std::size_t{n};
   Accountant::get().take(n);
-  return q + 1;
+  return static_cast<std::max_align_t *>(p) + 1;
 }
 
 void operator delete(void *p) noexcept {
   if (!p)
     return;
-  auto q = static_cast<std::size_t *>(p) - 1;
-  Accountant::get().give_back(*q);
-  std::free(q);
+  p = static_cast<std::max_align_t *>(p) - 1;
+  Accountant::get().give_back(*static_cast<std::size_t *>(p));
+  std::free(p);
 }
 void operator delete[](void *p) noexcept {
   if (!p)
     return;
-  auto q = static_cast<std::size_t *>(p) - 1;
-  Accountant::get().give_back(*q);
-  std::free(q);
+  p = static_cast<std::max_align_t *>(p) - 1;
+  Accountant::get().give_back(*static_cast<std::size_t *>(p));
+  std::free(p);
 }
