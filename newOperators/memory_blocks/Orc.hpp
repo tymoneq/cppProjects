@@ -1,6 +1,6 @@
 #pragma once
 
-// #define HOMEMADE_VERSION
+ #define HOMEMADE_VERSION
 
 #include <cstddef>
 #include <new>
