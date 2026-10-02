@@ -9,6 +9,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <utility>
 #include <vector>
 
@@ -52,4 +53,70 @@ template <int N, auto... Sz> class ChunkSizedAllocator {
     void *e = static_cast<char *>(b) + N * sizes[i];
     return p == b || (std::less{}(b, p) && std::less{}(p, e));
   }
+
+  std::mutex m;
+
+public:
+  ChunkSizedAllocator(const ChunkSizedAllocator &) = delete;
+  ChunkSizedAllocator &operator=(const ChunkSizedAllocator &) = delete;
+
+  ChunkSizedAllocator() {
+    int i = 0;
+    for (auto sz : sizes)
+      blocks[i++] = std::malloc(N * sz);
+    assert(std::none_of(std::begin(blocks), std::end(blocks),
+                        [](auto p) { return !p; }));
+  }
+
+  ~ChunkSizedAllocator() {
+    for (auto p : blocks)
+      std::free(p);
+  }
+
+  auto allocate(std::size_t n) {
+    using std::size;
+    for (std::size_t i = 0; i != size(sizes); ++i) {
+      if (n < sizes[i]) {
+        std::lock_guard _{m};
+        if (cur[i] < N) {
+          void *p = static_cast<char *>(blocks[i]) + cur[i] * sizes[i];
+          ++cur[i];
+          return p;
+        }
+      }
+    }
+
+    return ::operator new(n);
+  }
+
+  void deallocate(void *p) {
+    using std::size;
+    for (std::size_t i = 0; i != size(sizes); ++i) {
+      if (within_block(p, i)) {
+        return;
+      }
+    }
+
+    ::operator delete(p);
+  }
 };
+
+template <int N, auto... Sz>
+void *operator new(std::size_t n, ChunkSizedAllocator<N, Sz...> &chunks) {
+  return chunks.allocate(n);
+}
+
+template <int N, auto... Sz>
+void *operator new[](std::size_t n, ChunkSizedAllocator<N, Sz...> &chunks) {
+  return chunks.allocate(n);
+}
+
+template <int N, auto... Sz>
+void operator delete(void *p, ChunkSizedAllocator<N, Sz...> &chunks) {
+  return chunks.deallocate(p);
+}
+template <int N, auto... Sz>
+void operator delete[](void *p, ChunkSizedAllocator<N, Sz...> &chunks) {
+  return chunks.deallocate(p);
+}
+
